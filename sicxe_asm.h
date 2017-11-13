@@ -58,10 +58,12 @@ private:
     bool is_number(string s);
     int string_to_int(string s);
     void get_offset(int &code, string operand, int line);
-    void process_operand(int &code, string opcode, string operand, int line);
+    void process_operand3(int &code, string opcode, string operand, int line);
+    void process_operand4(int &code, string opcode, string operand, int line);
     
     file_parser *fp;
     opcodetab *opcodes;
     symtab *labels;
     ostringstream convert_to_string;
 };
+
