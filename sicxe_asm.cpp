@@ -184,28 +184,51 @@ void sicxe_asm::process_format1(string opcode, int line) {
 }
 
 void sicxe_asm::process_format2(string opcode, string operand, int line) {
+    //DEAL WITH SHIFT OPCODES HERE BECAUSE THEY ARE EXCEPTIONS
+    
     
 }
 
 void sicxe_asm::process_format3(string opcode, string operand, int line) {
-    //DEAL WITH RSUB HERE BECAUSE IT DOES NOT HAVE AN OPERAND
-    
     int code = 0;
+    bool indexed = false;
+    string exception;
+    //DEAL WITH RSUB HERE BECAUSE IT DOES NOT HAVE AN OPERAND
+    if(operand.compare("RSUB") == 0) {
+        code = hex_to_int("4F0000");
+        storage[line-1].machine_code = code;
+        return;
+    }
     if(operand.find(',') != operand.npos) { //Offset (alpha,x) can you have 1000,x or $1000,x??
         code |= SET_3N;
         code |= SET_3I;
         code |= SET_3X;
-        get_offset(code, operand.substr(0, operand.size()-2), line);
-    } else if(operand[0] == '#') {      //Immediate (#alpha or #1000 or #$100)
+        indexed = true;
+    }
+    if(operand[0] == '#') {      //Immediate (#alpha or #1000 or #$100)
+        if(indexed) {
+            convert_to_string << line;
+            exception.append("Error at line: " + convert_to_string.str() + ". Invalid operand");
+            throw file_parse_exception(exception);
+        }
         code |= SET_3I;
-        process_operand(code, opcode, operand.substr(1), line);
+        process_operand3(code, opcode, operand.substr(1), line);
     } else if (operand[0] == '@') {     //Indirect (@alpha or @1000 or @$100)
+        if(indexed) {
+            convert_to_string << line;
+            exception.append("Error at line: " + convert_to_string.str() + ". Invalid operand");
+            throw file_parse_exception(exception);
+        }
         code |= SET_3N;
-        process_operand(code, opcode, operand.substr(1), line);
+        process_operand3(code, opcode, operand.substr(1), line);
     } else {        //No addressing mode (alpha or 10000 or $100)
-        code |= SET_3N;
-        code |= SET_3I;
-        process_operand(code, opcode, operand, line);
+        if(indexed) {
+            process_operand3(code, opcode, operand.substr(0, operand.size()-2), line);
+        } else {
+            code |= SET_3N;
+            code |= SET_3I;
+            process_operand3(code, opcode, operand, line);
+        }
     }
     
     //validate flags
@@ -218,10 +241,57 @@ void sicxe_asm::process_format3(string opcode, string operand, int line) {
 }
 
 void sicxe_asm::process_format4(string opcode, string operand, int line) {
+    int code = 0;
+    if(operand.compare("+RSUB")) {
+        code = hex_to_int("4F000000");
+        storage[line-1].machine_code = code;
+        return;
+    }
+    bool indexed = false;
+    string exception;
+    if(operand.find(',') != operand.npos) {
+        code |= SET_4N;
+        code |= SET_4I;
+        code |= SET_4X;
+        indexed = true;
+    }
+    if(operand[0] == '#') {      //Immediate (#alpha or #1000 or #$100)
+        if(indexed) {
+            convert_to_string << line;
+            exception.append("Error at line: " + convert_to_string.str() + ". Invalid operand");
+            throw file_parse_exception(exception);
+        }
+        code |= SET_4I;
+        process_operand4(code, opcode, operand.substr(1), line);
+    } else if (operand[0] == '@') {     //Indirect (@alpha or @1000 or @$100)
+        if(indexed) {
+            convert_to_string << line;
+            exception.append("Error at line: " + convert_to_string.str() + ". Invalid operand");
+            throw file_parse_exception(exception);
+        }
+        code |= SET_4N;
+        process_operand4(code, opcode, operand.substr(1), line);
+    } else {        //No addressing mode (alpha or 10000 or $100)
+        if(indexed) {
+            process_operand4(code, opcode, operand.substr(0, operand.size()-2), line);
+        } else {
+            code |= SET_4N;
+            code |= SET_4I;
+            process_operand4(code, opcode, operand, line);
+        }
+    }
     
+    //validate flags
+    
+    int mc = hex_to_int(opcodes->get_machine_code(opcode, line));
+    mc <<= 26;
+    code |= mc;
+    storage[line-1].machine_code = code;
+    
+
 }
 
-void sicxe_asm::process_operand(int &code, string opcode, string operand, int line) {
+void sicxe_asm::process_operand3(int &code, string opcode, string operand, int line) {
     string exception;
     if(operand[0] == '$') {
         if(is_number(operand.substr(1))) {
@@ -249,6 +319,33 @@ void sicxe_asm::process_operand(int &code, string opcode, string operand, int li
         }
     } else {
         get_offset(code, operand, line);
+    }
+}
+
+void sicxe_asm::process_operand4(int &code, string opcode, string operand, int line) {
+    string exception;
+    if(operand[0] == '$') {
+        if(is_number(operand.substr(1))) {
+            if(operand.size()-2 > 5) {
+                convert_to_string << line;
+                exception.append("Error at line: " + convert_to_string.str() + ". Value does not fit in 5 hex digits.");
+                throw file_parse_exception(exception);
+            } else {
+                int immediate = hex_to_int(operand.substr(1));
+                code += immediate;
+            }
+        } else {
+            convert_to_string << line;
+            exception.append("Error at line: " + convert_to_string.str() + ". Invalid operand syntax");
+            throw file_parse_exception(exception);
+        }
+    } else if(is_number(opcode)) {
+        int immediate = string_to_int(operand.substr(1));
+        //Check if it fits in 5 bytes??
+        code += immediate;
+    } else {
+        int destination = labels->gettab(operand);
+        code += destination;
     }
 }
 
