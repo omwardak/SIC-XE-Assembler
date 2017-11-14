@@ -11,6 +11,8 @@
 #include "opcode_error_exception.h"
 #include <cstdlib>
 #include <algorithm>
+#include "symtab_exception.h"
+
 
 
 using namespace std;
@@ -27,6 +29,9 @@ public:
     void insert (string,int);
 
     int getsize();
+
+    int gettab(string);
+
 
 private:
     // your variables and private methods go here

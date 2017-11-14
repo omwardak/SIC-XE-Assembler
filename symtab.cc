@@ -27,3 +27,16 @@ void symtab:: insert (string label, int locctr) {
 int symtab:: getsize(){
     return size;
 }
+
+int symtab:: gettab(string key){
+    int location;
+    string exception;
+    if(symtab::contains(key)) {
+        location = mymap[key];
+        return location;
+    }
+    else{
+        exception.append("Key not found!");
+        throw symtab_exception(exception);
+    }
+}
