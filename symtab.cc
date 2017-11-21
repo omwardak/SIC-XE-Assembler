@@ -2,6 +2,7 @@
 // Created by Omar Wardak on 10/16/2017.
 //
 
+#include <iostream>
 #include "symtab.h"
 
 

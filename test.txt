@@ -33,7 +33,6 @@ addl lda alpha,x
  +jlt addl
  jlt addl
  rsub
-
 alpha resw 100
 beta resw 100
 gamma resw 100
@@ -44,4 +43,3 @@ theta byte c'eof'
 buffer resb 3000
 foo word 1
  end prog
-
