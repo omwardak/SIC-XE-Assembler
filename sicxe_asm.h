@@ -64,6 +64,7 @@ private:
     bool is_hexdigit(char hex);
     string to_uppercase(string s);
     string int_to_hex(int num, int width);
+    int op_to_int(string s);
     
     file_parser *fp;
     opcodetab *opcodes;
