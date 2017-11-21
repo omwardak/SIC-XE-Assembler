@@ -184,9 +184,48 @@ void sicxe_asm::process_format1(string opcode, int line) {
 }
 
 void sicxe_asm::process_format2(string opcode, string operand, int line) {
-    //DEAL WITH SHIFT OPCODES HERE BECAUSE THEY ARE EXCEPTIONS
+    string exception;
+    string str1, str2;
+    int pos, op1, op2;
     
+    pos = operand.find(',');
+    if(pos != operand.npos) {
+        str1 = operand.substr(0, pos);
+        str2 = operand.substr(pos+1);
+    }
+    else {
+        str1 = operand.substr(0);
+        str2 = "";
+    }
     
+    if (str1.length() == 0) {
+        exception.append("Error at line: " + convert_to_string.str() + ". Missing operand 1");
+        throw file_parse_exception(exception);
+    }
+    
+    op1 = op_to_int(str1);
+    if ((op1 < 0) || (15 < op1
+                      )) {
+        exception.append("Error at line: " + convert_to_string.str() + ". Invalid operand 1");
+        throw file_parse_exception(exception);
+    }
+    op1 <<= 4;
+    
+    if ((str2.length() == 0) && (opcode.compare("CLEAR") != 0) && (opcode.compare("TIXR") != 0) && (opcode.compare("SVC") != 0)) {
+        exception.append("Error at line: " + convert_to_string.str() + ". Missing operand 2");
+        throw file_parse_exception(exception);
+    }
+    
+    if (str2.length() > 0) {
+        op2 = op_to_int(str2);
+        if ((op2 < 0) || (15 < op2)) {
+            exception.append("Error at line: " + convert_to_string.str() + ". Invalid operand 2");
+            throw file_parse_exception(exception);
+        }
+        op1 += op2;
+    }
+    
+    storage[line-1].machine_code = (hex_to_int(opcodes->get_machine_code(opcode, line)) << 8) + op1;
 }
 
 void sicxe_asm::process_format3(string opcode, string operand, int line) {
@@ -717,6 +756,23 @@ string sicxe_asm::int_to_hex(int num, int width) {
 string sicxe_asm::to_uppercase(string s) {
     transform(s.begin(), s.end(), s.begin(), ::toupper);
     return s;
+}
+
+int sicxe_asm::op_to_int(string s) {
+    if (s[0] == '$') {
+        if (!is_hexnumber(s.substr(1))) return -1;
+        return hex_to_int(s.substr(1));
+    }
+    else if (s.compare("A") == 0) {return 0;}
+    else if (s.compare("X") == 0) {return 1;}
+    else if (s.compare("L") == 0) {return 2;}
+    else if (s.compare("B") == 0) {return 3;}
+    else if (s.compare("S") == 0) {return 4;}
+    else if (s.compare("T") == 0) {return 5;}
+    else {
+        if (!is_number(s)) return -1;
+        return string_to_int(s);
+    }
 }
 
 void sicxe_asm::print(){
