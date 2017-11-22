@@ -11,6 +11,7 @@
 #include "opcode_error_exception.h"
 #include <cstdlib>
 #include <algorithm>
+#include <sstream>
 #include "symtab_exception.h"
 
 
@@ -30,13 +31,14 @@ public:
 
     int getsize();
 
-    int gettab(string);
+    int gettab(string, int);
 
 
 private:
     // your variables and private methods go here
     std::map<string, int> mymap;
     int size;
+    ostringstream convert_to_string;
 
 
 };

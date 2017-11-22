@@ -29,7 +29,7 @@ int symtab:: getsize(){
     return size;
 }
 
-int symtab:: gettab(string key){
+int symtab:: gettab(string key, int line){
     int location;
     string exception;
     if(symtab::contains(key)) {
@@ -37,7 +37,8 @@ int symtab:: gettab(string key){
         return location;
     }
     else{
-        exception.append("Key not found!");
+        convert_to_string << line;
+        exception.append("Error at line: " + convert_to_string.str() + ". Label in operand not found.");
         throw symtab_exception(exception);
     }
 }

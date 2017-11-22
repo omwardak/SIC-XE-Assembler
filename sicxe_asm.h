@@ -60,7 +60,12 @@ private:
     void get_offset(int &code, string operand, int line);
     void process_operand3(int &code, string opcode, string operand, int line);
     void process_operand4(int &code, string opcode, string operand, int line);
-    
+    bool is_hexnumber(string s);
+    bool is_hexdigit(char hex);
+    string to_uppercase(string s);
+    string int_to_hex(int num, int width);
+    int op_to_int(string s);
+
     file_parser *fp;
     opcodetab *opcodes;
     symtab *labels;
