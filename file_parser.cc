@@ -34,7 +34,7 @@ void file_parser::tokenize_lines(vector<string> file_lines) {
         bool opcode = *cstr == ' ';
         bool commentmade = false;
 
-        char *token = strtok(cstr, " ");
+        char *token = strtok(cstr, " \t");
 
         struct row newline;
 
@@ -61,7 +61,7 @@ void file_parser::tokenize_lines(vector<string> file_lines) {
                         newline.comment = strcomment3;
                     } else
                         newline.comment = strcomment1;
-                    token = strtok(NULL, " ");
+                    token = strtok(NULL, " \t");
                 }
                 else if (!isalpha(token[0])) {
                     convert_to_string << line_num;
@@ -69,17 +69,16 @@ void file_parser::tokenize_lines(vector<string> file_lines) {
                     throw file_parse_exception(exception);
                 }
                 else {
-                    int size = (int)strlen(token);
-                    for (int j = 0; j < size; j++) {
-                        if (!isalpha(token[j]) && !isdigit(token[j])) {
+                    string strlabel(token);
+                    for (int j = 0; j < strlabel.length(); j++) {
+                        if (!isalnum(strlabel[j])) {
                             convert_to_string << line_num;
                             exception.append("Error at line " + convert_to_string.str() + ": Invalid character in label. Not a letter or a number.");
                             throw file_parse_exception(exception);
                         }
                     }
-                    string strlabel(token);
                     newline.label = strlabel;
-                    token = strtok(NULL, " ");
+                    token = strtok(NULL, " \t");
                 }
             }
 
@@ -106,7 +105,7 @@ void file_parser::tokenize_lines(vector<string> file_lines) {
                 newline.opcode = stropcode;
             }
 
-            token = strtok(NULL, " ");
+            token = strtok(NULL, " \t");
 
 
             //operand*********************************************
@@ -156,7 +155,7 @@ void file_parser::tokenize_lines(vector<string> file_lines) {
                     newline.operand = stroper1;
                 }
             }
-            token = strtok(NULL, " ");
+            token = strtok(NULL, " \t");
 
             //comment************************************************************
 
@@ -180,7 +179,7 @@ void file_parser::tokenize_lines(vector<string> file_lines) {
                     throw file_parse_exception(exception);
                 }
             }
-            token = strtok(NULL, " ");
+            token = strtok(NULL, " \t");
             if(token!=NULL) {
                 convert_to_string << line_num;
                 exception.append("Error at line " + convert_to_string.str() + ": Cannot have more than 4 tokens per line");

@@ -73,7 +73,7 @@ void sicxe_asm::do_second_pass(string file, int line) {
         opcode = fp->get_token(line-1, 1);
         operand = fp->get_token(line-1, 2);
         if(label.empty() && opcode.empty() && operand.empty()) {
-            storage[line-1].machine_code = 0;
+            storage[line-1].machine_code = " ";
             line++;
             continue;
         }
@@ -110,11 +110,11 @@ void sicxe_asm::process_assembler_directive(string opcode, string operand, int l
             break;
         case 4:
             //RESB does not generate machine code
-            storage[line-1].machine_code = 0;
+            storage[line-1].machine_code = " ";
             break;
         case 5:
             //RESW does not generate machine code
-            storage[line-1].machine_code = 0;
+            storage[line-1].machine_code = " ";
             break;
         case 6:
             process_BASE(operand, line);
@@ -124,7 +124,7 @@ void sicxe_asm::process_assembler_directive(string opcode, string operand, int l
             break;
         case 8:
             //EQU does not generate machine code
-            storage[line-1].machine_code = 0;
+            storage[line-1].machine_code = " ";
             break;
         default:
             break;
@@ -132,33 +132,43 @@ void sicxe_asm::process_assembler_directive(string opcode, string operand, int l
 }
 
 void sicxe_asm::process_BYTE(string operand, int line) {
+    string exception;
     if(toupper(operand[0]) == 'C') {    //Storing characters
         string code = string_to_ascii(operand.substr(2, operand.size()-3));
-        storage[line-1].machine_code = hex_to_int(code);
-    } else if(toupper(operand[0] == 'X')) { //Storing hex digits
-        storage[line-1].machine_code = hex_to_int(operand.substr(2, operand.size()-3));
+        storage[line-1].machine_code = code;
+    } else if(toupper(operand[0]) == 'X') { //Storing hex digits
+        //check if is hex
+        string code = operand.substr(2, operand.size()-3);
+        if(!is_hexnumber (code)) {
+            convert_to_string << line;
+            exception.append("Error at line: " + convert_to_string.str() + ". Operand must be hex for BYTE x''");
+            throw file_parse_exception(exception);
+        }
+        storage[line-1].machine_code = to_uppercase(code);
     } else {                                //Storing decimal digits
-        storage[line-1].machine_code = atoi(operand.substr(2).c_str());
+        storage[line-1].machine_code = operand.substr(2).c_str();
     }
 }
 
 void sicxe_asm::process_WORD(string operand, int line) {
     if(operand[0] == '$') { //Operand is a hex value
-        storage[line-1].machine_code = hex_to_int(operand.substr(1));
+        string code = pad_string(operand.substr(1), 6);
+        storage[line-1].machine_code = code;
     } else {                //Operand is a decimal value
-        storage[line-1].machine_code = atoi(operand.substr(0).c_str());
+        string code = pad_string(operand.c_str(), 6);
+        storage[line-1].machine_code = code;
     }
 }
 
 void sicxe_asm::process_BASE(string operand, int line) {
     base = operand;
-    storage[line-1].machine_code = 0;
+    storage[line-1].machine_code = " ";
 
 }
 
 void sicxe_asm::process_NOBASE(string operand, int line) {
     base = "";
-    storage[line-1].machine_code = 0;
+    storage[line-1].machine_code = " ";
 
 }
 
@@ -187,7 +197,7 @@ void sicxe_asm::process_line(string opcode, string operand, int line) {
 }
 
 void sicxe_asm::process_format1(string opcode, int line) {
-    int code = hex_to_int(opcodes->get_machine_code(opcode, line));
+    string code = opcodes->get_machine_code(opcode, line);
     storage[line-1].machine_code = code;
 }
 
@@ -195,7 +205,6 @@ void sicxe_asm::process_format2(string opcode, string operand, int line) {
     string exception;
     string str1, str2;
     int pos, op1, op2;
-
     pos = operand.find(',');
     if(pos != operand.npos) {
         str1 = operand.substr(0, pos);
@@ -236,26 +245,56 @@ void sicxe_asm::process_format2(string opcode, string operand, int line) {
         op1 += op2;
     }
 
-    storage[line-1].machine_code = (hex_to_int(opcodes->get_machine_code(opcode, line)) << 8) + op1;
-}
+    int code = (hex_to_int(opcodes->get_machine_code(opcode, line)) << 8) + op1;
 
-void sicxe_asm::process_format3(string opcode, string operand, int line) {
+    string str = int_to_hex(code, 4);
+    storage[line-1].machine_code = str;
+
+
+    }
+
+void sicxe_asm::process_format3(string opcode, string oper, int line) {
+    string operand;
     int code = 0;
     bool indexed = false;
     string exception;
     //DEAL WITH RSUB HERE BECAUSE IT DOES NOT HAVE AN OPERAND
     opcode = to_uppercase(opcode);
-    if((opcode).compare("RSUB") == 0) {
+    if ((opcode).compare("RSUB") == 0) {
         code = hex_to_int("4F0000");
-        storage[line-1].machine_code = code;
+        string str = int_to_hex(code, 6);
+        storage[line - 1].machine_code = str;
         return;
     }
-    if(operand.find(',') != operand.npos) { //Offset (alpha,x) can you have 1000,x or $1000,x??
+
+    int pos = oper.find(',');
+    string str2;
+    if (pos != oper.npos) { //Offset (alpha,x) can you have 1000,x or $1000,x??
         code |= SET_3N;
         code |= SET_3I;
         code |= SET_3X;
         indexed = true;
+        operand = oper.substr(0, pos);
+        str2 = oper.substr(pos + 1);
+    } else {
+        operand = oper.substr(0);
+        str2 = "";
     }
+
+    if (operand.length() == 0) {
+        convert_to_string << line;
+        exception.append("Error at line: " + convert_to_string.str() + ". Missing operand 1");
+        throw file_parse_exception(exception);
+    }
+
+    if (str2 != ""){
+        if (to_uppercase(str2) != "X") {
+            convert_to_string << line;
+            exception.append("Error at line: " + convert_to_string.str() + ". Operand 2 must be the X register for this operation");
+            throw file_parse_exception(exception);
+        }
+    }
+
     if(operand[0] == '#') {      //Immediate (#alpha or #1000 or #$100)
         if(indexed) {
             convert_to_string << line;
@@ -274,7 +313,7 @@ void sicxe_asm::process_format3(string opcode, string operand, int line) {
         process_operand3(code, opcode, operand.substr(1), line);
     } else {        //No addressing mode (alpha or 10000 or $100)
         if(indexed) {
-            process_operand3(code, opcode, operand.substr(0, operand.size()-2), line);
+            process_operand3(code, opcode, operand, line);
         } else {
             code |= SET_3N;
             code |= SET_3I;
@@ -287,20 +326,46 @@ void sicxe_asm::process_format3(string opcode, string operand, int line) {
     int mc = hex_to_int(opcodes->get_machine_code(opcode, line));
     mc <<= 16;
     code |= mc;
-    storage[line-1].machine_code = code;
 
+    string str = int_to_hex(code, 4);
+    storage[line-1].machine_code = str;
 }
 
-void sicxe_asm::process_format4(string opcode, string operand, int line) {
+void sicxe_asm::process_format4(string opcode, string oper, int line) {
+    string operand;
     int code = 0;
+    code |= SET_E;
     bool indexed = false;
     string exception;
-    if(operand.find(',') != operand.npos) {
+    int pos = oper.find(',');
+    string str2;
+    if (pos != oper.npos) { //Offset (alpha,x) can you have 1000,x or $1000,x??
         code |= SET_4N;
         code |= SET_4I;
         code |= SET_4X;
         indexed = true;
+        operand = oper.substr(0, pos);
+        str2 = oper.substr(pos + 1);
+    } else {
+        operand = oper.substr(0);
+        str2 = "";
     }
+
+    if (operand.length() == 0) {
+        convert_to_string << line;
+        exception.append("Error at line: " + convert_to_string.str() + ". Missing operand");
+        throw file_parse_exception(exception);
+    }
+
+    if (str2 != ""){
+        if (to_uppercase(str2) != "X") {
+            convert_to_string << line;
+            exception.append("Error at line: " + convert_to_string.str() + ". Operand 2 must be the X register for this operation");
+            throw file_parse_exception(exception);
+        }
+    }
+
+
     if(operand[0] == '#') {      //Immediate (#alpha or #1000 or #$100)
         if(indexed) {
             convert_to_string << line;
@@ -319,7 +384,7 @@ void sicxe_asm::process_format4(string opcode, string operand, int line) {
         process_operand4(code, opcode, operand.substr(1), line);
     } else {        //No addressing mode (alpha or 10000 or $100)
         if(indexed) {
-            process_operand4(code, opcode, operand.substr(0, operand.size()-2), line);
+            process_operand4(code, opcode, operand, line);
         } else {
             code |= SET_4N;
             code |= SET_4I;
@@ -332,8 +397,9 @@ void sicxe_asm::process_format4(string opcode, string operand, int line) {
     int mc = hex_to_int(opcodes->get_machine_code(opcode, line));
     mc <<= 24;
     code |= mc;
-    storage[line-1].machine_code = code;
 
+    string str = int_to_hex(code, 8);
+    storage[line-1].machine_code = str;
 
 }
 
@@ -577,7 +643,6 @@ void sicxe_asm::assign_addresses(int line) {
     }
 
 }
-
 int sicxe_asm::directive_handler(int directive, string operand, int currentlcctr, int line){
     ostringstream convert_to_string;
     int value;
@@ -585,6 +650,11 @@ int sicxe_asm::directive_handler(int directive, string operand, int currentlcctr
     string exception;
     switch(directive) {
         case 0: {
+            if(operand.size() == 0){
+                convert_to_string << line;
+                exception.append("Error at line " + convert_to_string.str() + ". Must have an operand for this directive.");
+                throw file_parse_exception(exception);
+            }
             if (operand.at(0) == '$') {
                 operand = operand.substr(1, operand.length());
                 is_operand_alnum(operand, line);
@@ -604,6 +674,11 @@ int sicxe_asm::directive_handler(int directive, string operand, int currentlcctr
             int endquote = 0;
             int beginquote = 0;
             int size = 0;
+            if(operand.length() < 3){
+                convert_to_string << line;
+                exception.append("Error at line " + convert_to_string.str() + ". Incorrect format for BYTE operand");
+                throw file_parse_exception(exception);
+            }
             while (size < operand.length()) {
                 if ((operand.at(size)) == 39) {
                     beginquote = endquote;
@@ -623,13 +698,13 @@ int sicxe_asm::directive_handler(int directive, string operand, int currentlcctr
                 throw file_parse_exception(exception);  //Should not have any space for BYTE
             }
 
-            if (space) {
-                convert_to_string << line;
-                exception.append("Error at line " + convert_to_string.str() + ". No spaces in BYTE operand");
-                throw file_parse_exception(exception);
-            }
-
             if (((operand.at(0)) == 'x') || ((operand.at(0)) == 'X')) {
+
+                if (space) {
+                    convert_to_string << line;
+                    exception.append("Error at line " + convert_to_string.str() + ". No spaces in BYTE operand");
+                    throw file_parse_exception(exception);
+                }
 
                 if ((endquote&1) == 1) {
                     convert_to_string << line;
@@ -653,6 +728,11 @@ int sicxe_asm::directive_handler(int directive, string operand, int currentlcctr
             return value;
         }
         case 4: {
+            if(operand.size() == 0) {
+                convert_to_string << line;
+                exception.append("Error at line " + convert_to_string.str() + ". Must have an operand for this directive.");
+                throw file_parse_exception(exception);
+            }
             if (operand.at(0) == '$') {
                 operand = operand.substr(1, operand.length());
                 is_operand_alnum(operand, line);
@@ -667,6 +747,12 @@ int sicxe_asm::directive_handler(int directive, string operand, int currentlcctr
             return value2;
         }
         case 5: {
+            if(operand.size() == 0) {
+                convert_to_string << line;
+                exception.append("Error at line " + convert_to_string.str() + ". Must have an operand for this directive.");
+                throw file_parse_exception(exception);
+            }
+
             if (operand.at(0) == '$') {
                 operand = operand.substr(1, operand.length());
                 is_operand_alnum(operand, line);
@@ -715,7 +801,6 @@ void sicxe_asm::is_operand_alnum(string operand, int line){
             throw file_parse_exception(exception);
         }
     }
-
 }
 
 string sicxe_asm::string_to_ascii(string s) {
@@ -733,6 +818,7 @@ int sicxe_asm::hex_to_int(string s) {
     sscanf(s.c_str(),"%x",&value);
     return value;
 }
+
 
 int sicxe_asm::string_to_int(string s) {
     istringstream instr(s);
@@ -760,22 +846,31 @@ string sicxe_asm::int_to_hex(int num, int width) {
     return to_uppercase(out.str());
 }
 
+string sicxe_asm::pad_string(string code, int width) {
+    stringstream out;
+    out << setw(width) << setfill('0') << code;
+    return to_uppercase(out.str());
+}
+
+
 string sicxe_asm::to_uppercase(string s) {
     transform(s.begin(), s.end(), s.begin(), ::toupper);
     return s;
 }
 
 int sicxe_asm::op_to_int(string s) {
+    string x = to_uppercase(s);
+
     if (s[0] == '$') {
         if (!is_hexnumber(s.substr(1))) return -1;
         return hex_to_int(s.substr(1));
     }
-    else if (s.compare("A") == 0) {return 0;}
-    else if (s.compare("X") == 0) {return 1;}
-    else if (s.compare("L") == 0) {return 2;}
-    else if (s.compare("B") == 0) {return 3;}
-    else if (s.compare("S") == 0) {return 4;}
-    else if (s.compare("T") == 0) {return 5;}
+    else if (x.compare("A") == 0) {return 0;}
+    else if (x.compare("X") == 0) {return 1;}
+    else if (x.compare("L") == 0) {return 2;}
+    else if (x.compare("B") == 0) {return 3;}
+    else if (x.compare("S") == 0) {return 4;}
+    else if (x.compare("T") == 0) {return 5;}
     else {
         if (!is_number(s)) return -1;
         return string_to_int(s);
@@ -812,18 +907,13 @@ void sicxe_asm::print_file(string file){
     myfile << std::left << setfill(' ') << setw(10) << "=====" << setfill(' ') << setw(10) << "=======" << setfill(' ') << setw(10) << "=====" << setfill(' ') << setw(10) << "======" << setfill(' ') << setw(10) << "=======" << setw(10) << "============" << endl;
 
     for(v_iter = storage.begin(); v_iter != storage.end(); v_iter++) {
-        stringstream out;
-        stringstream out2;
-        out << setw(5) << setfill('0') << hex << (*v_iter).locctr;
-        out2 << setw(12) << setfill(' ') << hex << (*v_iter).machine_code;
-        string hex = out.str();
-        string machine = out2.str();
-        transform(hex.begin(), hex.end(), hex.begin(),::toupper);
-        transform(machine.begin(), machine.end(), machine.begin(),::toupper);
-        if((*v_iter).machine_code == 0)
-            machine = " ";
 
-        myfile << std::left << setfill(' ') << setw(12) << (*v_iter).line << setfill(' ') << setw(8) << hex << setfill(' ') << setw(10) << (*v_iter).label << setfill(' ') << setw(10) << (*v_iter).opcode << setfill(' ') << setw(10) << (*v_iter).operand << setw(10) << machine << endl;
+        stringstream out;
+        out << setw(5) << setfill('0') << hex << (*v_iter).locctr;
+        string hex = out.str();
+        transform(hex.begin(), hex.end(), hex.begin(),::toupper);
+
+        myfile << std::left << setfill(' ') << setw(12) << (*v_iter).line << setfill(' ') << setw(8) << hex << setfill(' ') << setw(10) << (*v_iter).label << setfill(' ') << setw(10) << (*v_iter).opcode << setfill(' ') << setw(10) << (*v_iter).operand << setw(10) << (*v_iter).machine_code << endl;
     }
     myfile.close();
 }

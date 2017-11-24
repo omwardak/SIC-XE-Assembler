@@ -23,7 +23,7 @@ private:
     struct list {
         int line;
         int locctr;
-        int machine_code;
+        string machine_code;
         string label;
         string opcode;
         string operand;
@@ -51,7 +51,7 @@ private:
     void process_line(string opcode, string operand, int line);
     void process_format1(string opcode, int line);
     void process_format2(string opcode, string operand, int line);
-    void process_format3(string opcode, string operand, int line);
+    void process_format3(string opcode, string oper, int line);
     void process_format4(string opcode, string operand, int line);
     string string_to_ascii(string s);
     int hex_to_int(string s);
@@ -65,6 +65,7 @@ private:
     string to_uppercase(string s);
     string int_to_hex(int num, int width);
     int op_to_int(string s);
+    string pad_string(string code, int width);
 
     file_parser *fp;
     opcodetab *opcodes;

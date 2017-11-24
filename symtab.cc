@@ -12,6 +12,7 @@ symtab::symtab() {
 }
 
 bool symtab::contains(string label) {
+    transform(label.begin(), label.end(), label.begin(), ::toupper);
     if (mymap.count(label) > 0) {
         return true;
     }
@@ -19,6 +20,7 @@ bool symtab::contains(string label) {
 }
 
 void symtab:: insert (string label, int locctr) {
+    transform(label.begin(), label.end(), label.begin(), ::toupper);
     pair<string, int> tmp;
     tmp = make_pair(label, locctr);
     mymap.insert(tmp);
@@ -30,6 +32,7 @@ int symtab:: getsize(){
 }
 
 int symtab:: gettab(string key, int line){
+    transform(key.begin(), key.end(), key.begin(), ::toupper);
     int location;
     string exception;
     if(symtab::contains(key)) {
