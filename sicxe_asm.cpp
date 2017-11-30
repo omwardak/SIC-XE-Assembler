@@ -162,7 +162,13 @@ void sicxe_asm::process_WORD(string operand, int line) {
 
 void sicxe_asm::process_BASE(string operand, int line) {
     base = operand;
-    storage[line-1].machine_code = " ";
+    string exception;
+    string tmp = to_uppercase(storage[line].opcode);
+    if(tmp != "LDB" && tmp != "+LDB") {
+        convert_to_string << line;
+        exception.append("Error at line: " + convert_to_string.str() + ". Must use LDB after BASE mode");
+        throw file_parse_exception(exception);
+    }
 
 }
 
@@ -439,7 +445,8 @@ void sicxe_asm::process_operand4(int &code, string opcode, string operand, int l
     if(operand[0] == '$') {
         if(is_hexnumber(operand.substr(1))) {
             int immediate = hex_to_int(operand.substr(1));
-            if(immediate < 0xFFF80000 || immediate > 0x7FFFF) {
+            cout << immediate << endl;
+            if(immediate < -524288 || immediate > 524287) {
                 convert_to_string << line;
                 exception.append("Error at line: " + convert_to_string.str() + ". Immediate value does not fit in 5 hex digits");
                 throw file_parse_exception(exception);
@@ -453,7 +460,7 @@ void sicxe_asm::process_operand4(int &code, string opcode, string operand, int l
         }
     } else if(is_number(opcode)) {
         int immediate = string_to_int(operand.substr(1));
-        if(immediate < 0xFFF80000 || immediate > 0x7FFFF) {
+        if(immediate < -524288 || immediate > 524287) {
             convert_to_string << line;
             exception.append("Error at line: " + convert_to_string.str() + ". Immediate value does not fit in 5 hex digits");
             throw file_parse_exception(exception);
@@ -473,7 +480,40 @@ void sicxe_asm::get_offset(int &code, string symbol, int line) {
     int offset = destination - (source + 3);
     if(offset < -2048 || offset > 2047) {
         if(base != "") {
-            offset = labels->gettab(base, line) - source;
+            if(to_uppercase(storage[line-1].opcode) == "LDB"){
+                convert_to_string << line;
+                exception.append("Error at line: " + convert_to_string.str() + ". Due to the size, this operand can only use PC relative or format 4");
+                throw file_parse_exception(exception);
+            }
+
+            //if((to_uppercase(storage[line].operand) != base) || (to_uppercase(storage[line].operand) != base.substr(1)))
+                //throw exception
+            if(labels->contains(base)) {
+                offset = destination - labels->gettab(base, line);
+            }
+            else{
+                if(base[0] == '$') {
+                    if (is_hexnumber(base.substr(1))) {
+                        offset = destination - hex_to_int(base.substr(1));
+                    } else {
+                        convert_to_string << line;
+                        exception.append("Error at line: " + convert_to_string.str() + ". Hex specified for base, but contents of base are not hex");
+                        throw file_parse_exception(exception);
+                    }
+                }
+                else{
+                    if (is_number(base))
+                        offset = destination - string_to_int(base);
+                    else{
+                        convert_to_string << line;
+                        exception.append("Error at line: " + convert_to_string.str() + ". Invalid Base");
+                        throw file_parse_exception(exception);
+                    }
+
+                }
+
+            }
+
             if(offset < 0) {
                 convert_to_string << line;
                 exception.append("Error at line: " + convert_to_string.str() + ". BASE negative offset");
