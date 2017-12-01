@@ -458,7 +458,7 @@ void sicxe_asm::process_operand4(int &code, string opcode, string operand, int l
             exception.append("Error at line: " + convert_to_string.str() + ". Invalid operand syntax");
             throw file_parse_exception(exception);
         }
-    } else if(is_number(opcode)) {
+    } else if(is_number(operand)) {
         int immediate = string_to_int(operand.substr(1));
         if(immediate < -524288 || immediate > 524287) {
             convert_to_string << line;
