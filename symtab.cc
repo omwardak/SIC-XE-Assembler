@@ -19,6 +19,7 @@ bool symtab::contains(string label) {
     return false;
 }
 
+
 void symtab:: insert (string label, int locctr) {
     transform(label.begin(), label.end(), label.begin(), ::toupper);
     pair<string, int> tmp;

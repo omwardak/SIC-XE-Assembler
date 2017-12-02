@@ -123,13 +123,13 @@ void sicxe_asm::process_assembler_directive(string opcode, string operand, int l
             process_NOBASE(operand, line);
             break;
         case 8:
-            //EQU does not generate machine code
             storage[line-1].machine_code = " ";
             break;
         default:
             break;
     }
 }
+
 
 void sicxe_asm::process_BYTE(string operand, int line) {
     string exception;
@@ -234,8 +234,8 @@ void sicxe_asm::process_format2(string opcode, string operand, int line) {
         throw file_parse_exception(exception);
     }
     op1 <<= 4;
-
-    if ((str2.length() == 0) && (opcode.compare("CLEAR") != 0) && (opcode.compare("TIXR") != 0) && (opcode.compare("SVC") != 0)) {
+    string opcodetmp = to_uppercase(opcode);
+    if ((str2.length() == 0) && (opcodetmp.compare("CLEAR") != 0) && (opcodetmp.compare("TIXR") != 0) && (opcodetmp.compare("SVC") != 0)) {
         convert_to_string << line;
         exception.append("Error at line: " + convert_to_string.str() + ". Missing operand 2");
         throw file_parse_exception(exception);
@@ -248,6 +248,9 @@ void sicxe_asm::process_format2(string opcode, string operand, int line) {
             exception.append("Error at line: " + convert_to_string.str() + ". Invalid operand 2");
             throw file_parse_exception(exception);
         }
+
+        if(is_number(str2))
+            op2 -= 1;
         op1 += op2;
     }
 
@@ -317,6 +320,7 @@ void sicxe_asm::process_format3(string opcode, string oper, int line) {
         }
         code |= SET_3N;
         process_operand3(code, opcode, operand.substr(1), line);
+
     } else {        //No addressing mode (alpha or 10000 or $100)
         if(indexed) {
             process_operand3(code, opcode, operand, line);
@@ -333,7 +337,7 @@ void sicxe_asm::process_format3(string opcode, string oper, int line) {
     mc <<= 16;
     code |= mc;
 
-    string str = int_to_hex(code, 4);
+    string str = int_to_hex(code, 6);
     storage[line-1].machine_code = str;
 }
 
@@ -408,7 +412,6 @@ void sicxe_asm::process_format4(string opcode, string oper, int line) {
     storage[line-1].machine_code = str;
 
 }
-
 void sicxe_asm::process_operand3(int &code, string opcode, string operand, int line) {
     string exception;
     if(operand[0] == '$') {
@@ -438,6 +441,7 @@ void sicxe_asm::process_operand3(int &code, string opcode, string operand, int l
     } else {
         get_offset(code, operand, line);
     }
+
 }
 
 void sicxe_asm::process_operand4(int &code, string opcode, string operand, int line) {
@@ -445,7 +449,6 @@ void sicxe_asm::process_operand4(int &code, string opcode, string operand, int l
     if(operand[0] == '$') {
         if(is_hexnumber(operand.substr(1))) {
             int immediate = hex_to_int(operand.substr(1));
-            cout << immediate << endl;
             if(immediate < -524288 || immediate > 524287) {
                 convert_to_string << line;
                 exception.append("Error at line: " + convert_to_string.str() + ". Immediate value does not fit in 5 hex digits");
@@ -458,8 +461,8 @@ void sicxe_asm::process_operand4(int &code, string opcode, string operand, int l
             exception.append("Error at line: " + convert_to_string.str() + ". Invalid operand syntax");
             throw file_parse_exception(exception);
         }
-    } else if(is_number(opcode)) {
-        int immediate = string_to_int(operand.substr(1));
+    } else if(is_number(operand)) {
+        int immediate = string_to_int(operand.substr(0));
         if(immediate < -524288 || immediate > 524287) {
             convert_to_string << line;
             exception.append("Error at line: " + convert_to_string.str() + ". Immediate value does not fit in 5 hex digits");
@@ -469,6 +472,7 @@ void sicxe_asm::process_operand4(int &code, string opcode, string operand, int l
         }
     } else {
         int destination = labels->gettab(operand, line);
+        cout << destination << endl;
         code += destination;
     }
 }
@@ -530,6 +534,14 @@ void sicxe_asm::get_offset(int &code, string symbol, int line) {
     } else {
         code += offset;
         code |= SET_P;
+        if(offset < 0) {
+            code |= SET_3N;
+            code |= SET_3I;
+            code ^= SET_3X;
+            code ^= SET_B;
+            code |= SET_P;
+            code ^= 0x1000;
+        }
     }
 }
 

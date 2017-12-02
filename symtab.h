@@ -28,7 +28,6 @@ public:
 
 
     void insert (string,int);
-
     int getsize();
 
     int gettab(string, int);
