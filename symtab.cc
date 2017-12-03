@@ -18,7 +18,30 @@ bool symtab::contains(string label) {
     }
     return false;
 }
+void symtab:: append (string label, string operand, int line){
+    string exception;
+    transform(operand.begin(), operand.end(), operand.begin(), ::toupper);
+    transform(label.begin(), label.end(), label.begin(), ::toupper);
+    if(contains(operand) && contains(label)) {
+        mymap[label] = gettab(operand, line);
+    } else{
+        convert_to_string << line;
+        exception.append("Error at line: " + convert_to_string.str() + ". Invalid EQU syntax");
+        throw symtab_exception(exception);
+    }
+}
 
+void symtab:: appendnum (string label, int value, int line){
+    string exception;
+    transform(label.begin(), label.end(), label.begin(), ::toupper);
+    if(contains(label)){
+        mymap[label] = value;
+    } else{
+        convert_to_string << line;
+        exception.append("Error at line: " + convert_to_string.str() + ". Invalid EQU syntax");
+        throw symtab_exception(exception);
+    }
+}
 
 void symtab:: insert (string label, int locctr) {
     transform(label.begin(), label.end(), label.begin(), ::toupper);

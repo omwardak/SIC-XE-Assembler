@@ -43,6 +43,7 @@ private:
     void print_list_file(string file);
     bool is_assembler_directive(string opcode, int line);
     void process_assembler_directive(string opcode, string operand, int line);
+    void process_EQU(string operand, int line);
     void process_BYTE(string operand, int line);
     void process_WORD(string operand, int line);
     void process_BASE(string operand, int line);

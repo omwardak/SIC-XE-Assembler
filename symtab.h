@@ -25,8 +25,8 @@ public:
 
 
     bool contains(string);
-
-
+    void appendnum(string label, int value, int line);
+    void append (string label, string operand, int line);
     void insert (string,int);
     int getsize();
 
