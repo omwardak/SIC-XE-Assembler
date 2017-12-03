@@ -46,7 +46,7 @@ private:
     void process_EQU(string operand, int line);
     void process_BYTE(string operand, int line);
     void process_WORD(string operand, int line);
-    void process_BASE(string operand, int line);
+    void process_BASE(string operand);
     void process_NOBASE(string operand, int line);
     void process_END(string operand, int line);
     void process_line(string opcode, string operand, int line);
