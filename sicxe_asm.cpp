@@ -16,13 +16,13 @@ using namespace std;
 int main(int argc, char** argv) {
     try {
         string exception;
-        string file = "test.txt";
-        //        if(argc != 2) {
-        //            exception.append("Error: sicxeasm accepts 1 command line argument (filename)");
-        //            throw file_parse_exception(exception);
-        //        } else {
-        //            file = argv[1];
-        //        }
+        string file;
+        if(argc != 2) {
+            exception.append("Error: sicxeasm accepts 1 command line argument (filename)");
+            throw file_parse_exception(exception);
+        } else {
+            file = argv[1];
+        }
         sicxe_asm assembled = sicxe_asm(file);
         assembled.print_file(file);
         
@@ -56,6 +56,7 @@ int sicxe_asm::do_first_pass(string file) {
 }
 
 void sicxe_asm::do_second_pass(string file, int line) {
+    ostringstream convert_to_string;
     base = "";
     bool end = false;
     string exception;
@@ -132,6 +133,7 @@ void sicxe_asm::process_assembler_directive(string opcode, string operand, int l
 }
 
 void sicxe_asm::process_EQU(string operand, int line) {
+    ostringstream convert_to_string;
     string exception;
     int value;
     if(operand.empty()){
@@ -162,9 +164,11 @@ void sicxe_asm::process_EQU(string operand, int line) {
 
 
 void sicxe_asm::process_BYTE(string operand, int line) {
+    ostringstream convert_to_string;
     string exception;
     if (toupper(operand[0]) == 'C') {    //Storing characters
         string code = string_to_ascii(operand.substr(2, operand.size() - 3));
+        code = pad_string(code,6);
         storage[line - 1].machine_code = code;
     } else if (toupper(operand[0]) == 'X') { //Storing hex digits
         //check if is hex
@@ -174,7 +178,9 @@ void sicxe_asm::process_BYTE(string operand, int line) {
             exception.append("Error at line: " + convert_to_string.str() + ". Operand must be hex for BYTE x''");
             throw file_parse_exception(exception);
         }
-        storage[line - 1].machine_code = to_uppercase(code);
+        code = to_uppercase(code);
+        code = pad_string(code,6);
+        storage[line - 1].machine_code = code;
     } else {
         convert_to_string << line;
         exception.append("Error at line: " + convert_to_string.str() + ". Operand is not a number");
@@ -184,6 +190,7 @@ void sicxe_asm::process_BYTE(string operand, int line) {
 
 
 void sicxe_asm::process_WORD(string operand, int line) {
+    ostringstream convert_to_string;
     string exception;
     if (operand[0] == '$') { //Operand is a hex value
         if (is_hexnumber(operand.substr(1))) {
@@ -269,6 +276,7 @@ void sicxe_asm::process_format1(string opcode, int line) {
 }
 
 void sicxe_asm::process_format2(string opcode, string operand, int line) {
+    ostringstream convert_to_string;
     string exception;
     string str1, str2;
     int pos, op1, op2;
@@ -330,6 +338,7 @@ void sicxe_asm::process_format2(string opcode, string operand, int line) {
 
 
 void sicxe_asm::process_format3(string opcode, string oper, int line) {
+    ostringstream convert_to_string;
     string operand;
     int code = 0;
     bool indexed = false;
@@ -409,6 +418,7 @@ void sicxe_asm::process_format3(string opcode, string oper, int line) {
 }
 
 void sicxe_asm::process_format4(string opcode, string oper, int line) {
+    ostringstream convert_to_string;
     string operand;
     int code = 0;
     code |= SET_E;
@@ -480,6 +490,7 @@ void sicxe_asm::process_format4(string opcode, string oper, int line) {
     
 }
 void sicxe_asm::process_operand3(int &code, string opcode, string operand, int line) {
+    ostringstream convert_to_string;
     string exception;
     if(operand[0] == '$') {
         if(is_hexnumber(operand.substr(1))) {
@@ -512,6 +523,7 @@ void sicxe_asm::process_operand3(int &code, string opcode, string operand, int l
 }
 
 void sicxe_asm::process_operand4(int &code, string opcode, string operand, int line) {
+    ostringstream convert_to_string;
     string exception;
     if(operand[0] == '$') {
         if(is_hexnumber(operand.substr(1))) {
@@ -544,6 +556,7 @@ void sicxe_asm::process_operand4(int &code, string opcode, string operand, int l
 }
 
 void sicxe_asm::get_offset(int &code, string symbol, int line) {
+    ostringstream convert_to_string;
     string exception;
     int source = storage[line-1].locctr;
     int destination = labels->gettab(symbol, line);
@@ -616,6 +629,8 @@ void sicxe_asm::print_list_file(string file) {
 }
 
 int sicxe_asm::find_start() {
+    ostringstream convert_to_string;
+
     string exception;
     string label;
     string opcode;
@@ -675,6 +690,7 @@ int sicxe_asm::find_start() {
 }
 
 void sicxe_asm::assign_addresses(int line) {
+    ostringstream convert_to_string;
     string exception;
     struct list newline;
     string label;

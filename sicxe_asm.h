@@ -71,6 +71,5 @@ private:
     file_parser *fp;
     opcodetab *opcodes;
     symtab *labels;
-    ostringstream convert_to_string;
 };
 
