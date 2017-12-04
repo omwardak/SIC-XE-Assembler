@@ -209,10 +209,17 @@ void sicxe_asm::process_WORD(string operand, int line) {
         string code = operand.substr(2, operand.size() - 3);
         if (!is_hexnumber(code)) {
             convert_to_string << line;
-            exception.append("Error at line: " + convert_to_string.str() + ". Operand must be hex for BYTE x''");
+            exception.append("Error at line: " + convert_to_string.str() + ". Operand must be hex for WORD x''");
             throw file_parse_exception(exception);
         }
-        storage[line - 1].machine_code = to_uppercase(code);
+        if(code.size() > 6) {
+            convert_to_string << line;
+            exception.append("Error at line: " + convert_to_string.str() + ". Operand must fit in a word.");
+            throw file_parse_exception(exception);
+        } else {
+            int value = hex_to_int(code);
+            storage[line - 1].machine_code = int_to_hex(value, 6);  //Set the width to 6 so that it is padded with 0's if necessary
+        }
     } else{
         convert_to_string << line;
         exception.append("Error at line: " + convert_to_string.str() + ". Invalid operand syntax");
